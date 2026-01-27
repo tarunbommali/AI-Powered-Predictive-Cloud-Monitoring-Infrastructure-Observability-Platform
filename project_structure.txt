@@ -1,0 +1,62 @@
+cloud-monitoring-system/
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── models.py
+│   │   ├── schemas.py
+│   │   ├── auth.py
+│   │   ├── dependencies.py
+│   │   ├── routers/
+│   │   │   ├── __init__.py
+│   │   │   ├── auth.py
+│   │   │   ├── metrics.py
+│   │   │   ├── instances.py
+│   │   │   └── health.py
+│   │   └── services/
+│   │       ├── __init__.py
+│   │       ├── prometheus.py
+│   │       └── alerting.py
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── .env.example
+│   └── alembic/
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── Metrics.jsx
+│   │   │   ├── Instances.jsx
+│   │   │   ├── Alerts.jsx
+│   │   │   ├── Charts/
+│   │   │   └── Layout/
+│   │   ├── services/
+│   │   │   └── api.js
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   └── index.css
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── vite.config.js
+│   └── tailwind.config.js
+├── monitoring/
+│   ├── prometheus/
+│   │   ├── prometheus.yml
+│   │   └── alerts.yml
+│   ├── grafana/
+│   │   ├── dashboards/
+│   │   │   └── system-metrics.json
+│   │   └── datasources/
+│   │       └── prometheus.yml
+│   └── alertmanager/
+│       └── config.yml
+├── docker-compose.yml
+├── docker-compose.prod.yml
+├── README.md
+├── DEPLOYMENT.md
+├── API_DOCUMENTATION.md
+└── .gitignore

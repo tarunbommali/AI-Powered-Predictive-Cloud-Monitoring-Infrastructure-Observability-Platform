@@ -1,0 +1,123 @@
+version: '3.8'
+
+# Production Docker Compose configuration
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: monitoring-postgres-prod
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-monitoring}
+      POSTGRES_USER: ${POSTGRES_USER:-monitoring_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - monitoring-network-prod
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-monitoring_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: monitoring-prometheus-prod
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data_prod:/prometheus
+    networks:
+      - monitoring-network-prod
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: monitoring-grafana-prod
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL}
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - grafana_data_prod:/var/lib/grafana
+    networks:
+      - monitoring-network-prod
+    depends_on:
+      - prometheus
+    restart: always
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: monitoring-alertmanager-prod
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    volumes:
+      - ./monitoring/alertmanager/config.yml:/etc/alertmanager/config.yml:ro
+      - alertmanager_data_prod:/alertmanager
+    networks:
+      - monitoring-network-prod
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: monitoring-backend-prod
+    env_file:
+      - ./backend/.env
+    networks:
+      - monitoring-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: monitoring-frontend-prod
+    networks:
+      - monitoring-network-prod
+    depends_on:
+      - backend
+    restart: always
+
+  # Nginx reverse proxy for production
+  nginx:
+    image: nginx:alpine
+    container_name: monitoring-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - monitoring-network-prod
+    depends_on:
+      - frontend
+      - backend
+      - grafana
+    restart: always
+
+volumes:
+  postgres_data_prod:
+  prometheus_data_prod:
+  grafana_data_prod:
+  alertmanager_data_prod:
+
+networks:
+  monitoring-network-prod:
+    driver: bridge

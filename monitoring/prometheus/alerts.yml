@@ -1,0 +1,129 @@
+# Prometheus Alert Rules
+
+groups:
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: cpu
+        annotations:
+          summary: "High CPU usage detected on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }} (threshold: 80%)"
+
+      # Critical CPU Usage
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 2m
+        labels:
+          severity: critical
+          category: cpu
+        annotations:
+          summary: "Critical CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }} (threshold: 90%)"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: memory
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }} (threshold: 85%)"
+
+      # Critical Memory Usage
+      - alert: CriticalMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: memory
+        annotations:
+          summary: "Critical memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }} (threshold: 95%)"
+
+      # High Disk Usage
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          category: disk
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }} at {{ $labels.mountpoint }} (threshold: 90%)"
+
+      # Critical Disk Usage
+      - alert: CriticalDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: disk
+        annotations:
+          summary: "Critical disk usage on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }} at {{ $labels.mountpoint }} (threshold: 95%)"
+
+      # Instance Down
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"
+          description: "{{ $labels.instance }} has been down for more than 1 minute"
+
+      # High Load Average
+      - alert: HighLoadAverage
+        expr: node_load15 > (count(node_cpu_seconds_total{mode="idle"}) without(cpu, mode)) * 0.8
+        for: 10m
+        labels:
+          severity: warning
+          category: load
+        annotations:
+          summary: "High load average on {{ $labels.instance }}"
+          description: "15-minute load average is {{ $value }} on {{ $labels.instance }}"
+
+      # Disk I/O Saturation
+      - alert: HighDiskIO
+        expr: rate(node_disk_io_time_seconds_total[5m]) > 0.95
+        for: 5m
+        labels:
+          severity: warning
+          category: disk
+        annotations:
+          summary: "High disk I/O on {{ $labels.instance }}"
+          description: "Disk I/O utilization is {{ $value }} on {{ $labels.instance }}"
+
+      # High Network Errors
+      - alert: HighNetworkErrors
+        expr: rate(node_network_receive_errs_total[5m]) + rate(node_network_transmit_errs_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: network
+        annotations:
+          summary: "High network errors on {{ $labels.instance }}"
+          description: "Network error rate is {{ $value }} errors/sec on {{ $labels.instance }}"
+
+  - name: api_alerts
+    interval: 30s
+    rules:
+      # API Down
+      - alert: APIDown
+        expr: up{job="backend-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: api
+        annotations:
+          summary: "Backend API is down"
+          description: "Backend API has been unreachable for more than 1 minute"
