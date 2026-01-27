@@ -1,3 +1,4 @@
+
 # Cloud Monitoring System
 
 A production-grade, end-to-end cloud monitoring system for AWS EC2 instances, built with modern technologies and best practices.
