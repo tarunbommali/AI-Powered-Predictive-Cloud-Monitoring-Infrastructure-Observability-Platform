@@ -227,6 +227,9 @@ cp .env.example .env
 # alembic upgrade head
 
 # Start server
+
+uvicorn app.main:app --reload   
+or
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -501,4 +504,11 @@ For support, email support@example.com or open an issue in the repository.
 
 ---
 
-**Made with ❤️ for cloud monitoring**
+**Made with ❤️ by Likhithayaana**
+
+
+
+
+docker setup 
+
+1)docker-compose up -d
