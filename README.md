@@ -8,7 +8,9 @@ A production-grade, end-to-end cloud monitoring system for AWS EC2 instances, bu
 ![React](https://img.shields.io/badge/react-18.2+-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-brightgreen.svg)
 
+
 ## 🚀 Features
+
 
 ### Monitoring Capabilities
 - ✅ **Real-time CPU monitoring** - Per-core and aggregate usage

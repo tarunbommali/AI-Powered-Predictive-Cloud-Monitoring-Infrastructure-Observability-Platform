@@ -15,7 +15,7 @@ router = APIRouter(prefix="/metrics", tags=["Metrics"])
 
 @router.get("/cpu/{instance_id}")
 async def get_cpu_metrics(
-    instance_id: int,
+    instance_id: str,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -50,7 +50,7 @@ async def get_cpu_metrics(
 
 @router.get("/memory/{instance_id}")
 async def get_memory_metrics(
-    instance_id: int,
+    instance_id: str,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -76,7 +76,7 @@ async def get_memory_metrics(
 
 @router.get("/disk/{instance_id}")
 async def get_disk_metrics(
-    instance_id: int,
+    instance_id: str,
     mount_point: str = Query(default="/", description="Disk mount point"),
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
@@ -103,7 +103,7 @@ async def get_disk_metrics(
 
 @router.get("/network/{instance_id}")
 async def get_network_metrics(
-    instance_id: int,
+    instance_id: str,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -126,7 +126,7 @@ async def get_network_metrics(
 
 @router.get("/load/{instance_id}")
 async def get_load_metrics(
-    instance_id: int,
+    instance_id: str,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -151,7 +151,7 @@ async def get_load_metrics(
 
 @router.get("/all/{instance_id}")
 async def get_all_metrics(
-    instance_id: int,
+    instance_id: str,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
