@@ -3,7 +3,7 @@ JWT Authentication utilities
 """
 from datetime import datetime, timedelta
 from typing import Optional
-
+ 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -31,7 +31,7 @@ def get_password_hash(password: str) -> str:
 
 
 # ---------------- OAuth2 ----------------
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
 # ---------------- Authentication ----------------
