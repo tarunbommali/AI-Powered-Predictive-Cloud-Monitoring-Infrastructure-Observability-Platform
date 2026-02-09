@@ -14,13 +14,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str = Field(
-        ...,
-        min_length=8,
-        max_length=64,   # ✅ bcrypt-safe limit
-        description="Password must be between 8 and 64 characters"
-    )
-
+    password: str = Field(..., min_length=8)
 
 
 class UserLogin(BaseModel):

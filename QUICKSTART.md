@@ -256,3 +256,8 @@ SELECT * FROM users;
 SQLite version 3.46.1 2024-08-13 09:16:08
 Enter ".help" for usage hints.
 sqlite>
+
+
+
+1)docker-compose up -d
+## 🤝 Contributing

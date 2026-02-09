@@ -15,25 +15,27 @@ router = APIRouter(prefix="/metrics", tags=["Metrics"])
 
 @router.get("/cpu/{instance_id}")
 async def get_cpu_metrics(
-    instance_id: str,
+    instance_id: int,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    instance = db.query(models.Instance).filter(
-        models.Instance.instance_id == instance_id
-    ).first()
-
+    """Get CPU metrics for an instance"""
+    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
-
+    
+    # Build prometheus instance target
     target = f"{instance.ip_address}:{instance.port}"
-
+    
+    # Get CPU metrics
     cpu_usage = prometheus_client.get_cpu_usage(target)
     cpu_per_core = prometheus_client.get_cpu_per_core(target)
     load_avg = prometheus_client.get_load_average(target)
-
+    
+    # Check threshold and create alert if needed
     alert_service.check_cpu_threshold(db, instance, cpu_usage)
-
+    
     return {
         "instance_id": instance.instance_id,
         "instance_name": instance.name,
@@ -46,16 +48,14 @@ async def get_cpu_metrics(
     }
 
 
-
 @router.get("/memory/{instance_id}")
 async def get_memory_metrics(
-    instance_id: str,
+    instance_id: int,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get memory metrics for an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
-
+    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
     
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
@@ -76,13 +76,13 @@ async def get_memory_metrics(
 
 @router.get("/disk/{instance_id}")
 async def get_disk_metrics(
-    instance_id: str,
+    instance_id: int,
     mount_point: str = Query(default="/", description="Disk mount point"),
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get disk metrics for an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
     
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
@@ -103,7 +103,7 @@ async def get_disk_metrics(
 
 @router.get("/network/{instance_id}")
 async def get_network_metrics(
-    instance_id: str,
+    instance_id: int,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -126,12 +126,12 @@ async def get_network_metrics(
 
 @router.get("/load/{instance_id}")
 async def get_load_metrics(
-    instance_id: str,
+    instance_id: int,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get load average for an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
     
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
@@ -151,12 +151,12 @@ async def get_load_metrics(
 
 @router.get("/all/{instance_id}")
 async def get_all_metrics(
-    instance_id: str,
+    instance_id: int,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get all metrics for an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
     
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
@@ -239,5 +239,3 @@ async def get_dashboard_summary(
         "average_memory": round(avg_memory, 2),
         "average_disk": round(avg_disk, 2)
     }
-
-

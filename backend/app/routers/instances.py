@@ -30,7 +30,7 @@ async def list_instances(
 
 @router.get("/{instance_id}", response_model=schemas.Instance)
 async def get_instance(
-    instance_id: str,
+    instance_id: int,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -81,13 +81,13 @@ async def add_instance(
 
 @router.put("/{instance_id}", response_model=schemas.Instance)
 async def update_instance(
-    instance_id: str,  # <-- changed from int to str
+    instance_id: int,
     instance_update: schemas.InstanceUpdate,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Update an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
     
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
@@ -109,12 +109,12 @@ async def update_instance(
 
 @router.delete("/{instance_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_instance(
-    instance_id: str,  # <-- changed from int to str
+    instance_id: int,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Delete an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
     
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
@@ -131,13 +131,13 @@ async def delete_instance(
 
 @router.get("/{instance_id}/alerts", response_model=List[schemas.Alert])
 async def get_instance_alerts(
-    instance_id: str,  # <-- changed from int to str
+    instance_id: int,
     active_only: bool = True,
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get alerts for an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
     
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")

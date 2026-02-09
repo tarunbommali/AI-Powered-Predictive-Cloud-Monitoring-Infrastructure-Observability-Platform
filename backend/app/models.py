@@ -1,6 +1,3 @@
-# models.py
-
-
 """
 SQLAlchemy database models
 """
@@ -50,6 +47,7 @@ class Instance(Base):
     # Relationships
     owner = relationship("User", back_populates="instances")
     alerts = relationship("Alert", back_populates="instance")
+    metrics_snapshots = relationship("MetricsSnapshot", back_populates="instance")
 
 
 class Alert(Base):
@@ -89,8 +87,28 @@ class AlertConfig(Base):
     user = relationship("User", back_populates="alert_configs")
 
 
+# class MetricsSnapshot(Base):
+#     """Store periodic snapshots of metrics for historical analysis"""
+#     __tablename__ = "metrics_snapshots"
+
+#     id = Column(Integer, primary_key=True, index=True)
+#     instance_id = Column(Integer, ForeignKey("instances.id"))
+#     timestamp = Column(DateTime(timezone=True), server_default=func.now())
+#     cpu_usage = Column(Float)
+#     memory_usage = Column(Float)
+#     disk_usage = Column(Float)
+#     network_rx = Column(Float)
+#     network_tx = Column(Float)
+#     load_1min = Column(Float)
+#     load_5min = Column(Float)
+#     load_15min = Column(Float)
+
+
 class MetricsSnapshot(Base):
-    """Store periodic snapshots of metrics for historical analysis"""
+    """
+    Metrics snapshot for ML training - ADDED FOR ML FEATURES
+    Stores historical metrics data for machine learning model training
+    """
     __tablename__ = "metrics_snapshots"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -101,6 +119,12 @@ class MetricsSnapshot(Base):
     disk_usage = Column(Float)
     network_rx = Column(Float)
     network_tx = Column(Float)
+    network_rx_errors = Column(Float, default=0)
+    network_tx_errors = Column(Float, default=0)
+    disk_read_bytes = Column(Float, default=0)
+    disk_write_bytes = Column(Float, default=0)
     load_1min = Column(Float)
     load_5min = Column(Float)
     load_15min = Column(Float)
+
+    instance = relationship("Instance", back_populates="metrics_snapshots")
