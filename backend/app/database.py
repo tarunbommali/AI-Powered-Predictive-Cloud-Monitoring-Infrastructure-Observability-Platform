@@ -7,12 +7,14 @@ from sqlalchemy.orm import sessionmaker
 from app.config import settings
 
 # Create database engine
-engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
-    pool_pre_ping=True,
-    pool_recycle=3600,
-)
+# engine = create_engine(
+#     settings.DATABASE_URL,
+#     connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
+#     pool_pre_ping=True,
+#     pool_recycle=3600,
+# )
+DATABASE_URL = settings.DATABASE_URL
+engine = create_engine(DATABASE_URL)
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

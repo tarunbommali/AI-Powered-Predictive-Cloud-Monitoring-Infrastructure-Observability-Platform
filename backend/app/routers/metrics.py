@@ -15,12 +15,20 @@ router = APIRouter(prefix="/metrics", tags=["Metrics"])
 
 @router.get("/cpu/{instance_id}")
 async def get_cpu_metrics(
-    instance_id: int,
-    current_user: models.User = Depends(auth.get_current_active_user),
+    instance_id: str,
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user),
     db: Session = Depends(get_db)
 ):
     """Get CPU metrics for an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    # Try by ID first if numeric, then by instance_id string
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+    
+    if not instance:
+        # One last try: if it was numeric, it might still be a string instance_id
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
     
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
@@ -50,13 +58,19 @@ async def get_cpu_metrics(
 
 @router.get("/memory/{instance_id}")
 async def get_memory_metrics(
-    instance_id: int,
-    current_user: models.User = Depends(auth.get_current_active_user),
+    instance_id: str,
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user),
     db: Session = Depends(get_db)
 ):
     """Get memory metrics for an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
-    
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
@@ -76,14 +90,20 @@ async def get_memory_metrics(
 
 @router.get("/disk/{instance_id}")
 async def get_disk_metrics(
-    instance_id: int,
+    instance_id: str,
     mount_point: str = Query(default="/", description="Disk mount point"),
-    current_user: models.User = Depends(auth.get_current_active_user),
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user),
     db: Session = Depends(get_db)
 ):
     """Get disk metrics for an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
-    
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
@@ -103,13 +123,19 @@ async def get_disk_metrics(
 
 @router.get("/network/{instance_id}")
 async def get_network_metrics(
-    instance_id: int,
-    current_user: models.User = Depends(auth.get_current_active_user),
+    instance_id: str,
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user),
     db: Session = Depends(get_db)
 ):
     """Get network metrics for an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
-    
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
@@ -126,13 +152,19 @@ async def get_network_metrics(
 
 @router.get("/load/{instance_id}")
 async def get_load_metrics(
-    instance_id: int,
-    current_user: models.User = Depends(auth.get_current_active_user),
+    instance_id: str,
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user),
     db: Session = Depends(get_db)
 ):
     """Get load average for an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
-    
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
@@ -151,13 +183,19 @@ async def get_load_metrics(
 
 @router.get("/all/{instance_id}")
 async def get_all_metrics(
-    instance_id: int,
-    current_user: models.User = Depends(auth.get_current_active_user),
+    instance_id: str,
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user),
     db: Session = Depends(get_db)
 ):
     """Get all metrics for an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
-    
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
@@ -173,10 +211,29 @@ async def get_all_metrics(
     uptime = prometheus_client.get_uptime(target)
     
     # Check thresholds
+     # Check thresholds
     alert_service.check_cpu_threshold(db, instance, cpu_usage)
     alert_service.check_memory_threshold(db, instance, memory_metrics.get("usage_percent", 0))
     alert_service.check_disk_threshold(db, instance, disk_metrics.get("usage_percent", 0))
-    
+
+    # ----------- ADD THIS BLOCK (IMPORTANT) -----------
+    snapshot = models.MetricsSnapshot(
+        instance_id=instance.id,
+        timestamp=datetime.utcnow(),
+        cpu_usage=cpu_usage,
+        memory_usage=memory_metrics.get("usage_percent", 0),
+        disk_usage=disk_metrics.get("usage_percent", 0),
+        network_rx=network_metrics.get("rx_bytes", 0),
+        network_tx=network_metrics.get("tx_bytes", 0),
+        load_1min=load_avg.get("load_1min", 0),
+        load_5min=load_avg.get("load_5min", 0),
+        load_15min=load_avg.get("load_15min", 0),
+    )
+
+    db.add(snapshot)
+    db.commit()
+    # ----------- END BLOCK -----------
+
     return {
         "instance_id": instance.instance_id,
         "instance_name": instance.name,
@@ -193,9 +250,10 @@ async def get_all_metrics(
     }
 
 
+
 @router.get("/dashboard/summary")
 async def get_dashboard_summary(
-    current_user: models.User = Depends(auth.get_current_active_user),
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user),
     db: Session = Depends(get_db)
 ):
     """Get dashboard summary with aggregated metrics"""

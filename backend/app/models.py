@@ -12,10 +12,10 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    username = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    full_name = Column(String)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    username = Column(String(100), unique=True, index=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(150))
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -27,65 +27,57 @@ class User(Base):
 
 
 class Instance(Base):
-    """EC2 Instance model"""
     __tablename__ = "instances"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    instance_id = Column(String, unique=True, index=True, nullable=False)
-    ip_address = Column(String, nullable=False)
+    name = Column(String(100), nullable=False)
+    instance_id = Column(String(100), unique=True, index=True, nullable=False)
+    ip_address = Column(String(45), nullable=False)
     port = Column(Integer, default=9100)
-    region = Column(String)
-    instance_type = Column(String)
-    status = Column(String, default="active")
+    region = Column(String(50))
+    instance_type = Column(String(50))
+    status = Column(String(20), default="active")
     is_monitored = Column(Boolean, default=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
     tags = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Relationships
     owner = relationship("User", back_populates="instances")
     alerts = relationship("Alert", back_populates="instance")
     metrics_snapshots = relationship("MetricsSnapshot", back_populates="instance")
 
-
 class Alert(Base):
-    """Alert history model"""
     __tablename__ = "alerts"
 
     id = Column(Integer, primary_key=True, index=True)
     instance_id = Column(Integer, ForeignKey("instances.id"))
-    alert_type = Column(String)  # cpu, memory, disk, network
-    metric_name = Column(String)
+    alert_type = Column(String(50))
+    metric_name = Column(String(50))
     threshold_value = Column(Float)
     current_value = Column(Float)
-    severity = Column(String)  # warning, critical
-    message = Column(String)
-    status = Column(String, default="active")  # active, resolved, acknowledged
+    severity = Column(String(20))
+    message = Column(String(255))
+    status = Column(String(20), default="active")
     triggered_at = Column(DateTime(timezone=True), server_default=func.now())
     resolved_at = Column(DateTime(timezone=True))
-    
-    # Relationships
+
     instance = relationship("Instance", back_populates="alerts")
 
 
 class AlertConfig(Base):
-    """Alert configuration model"""
     __tablename__ = "alert_configs"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    alert_type = Column(String)  # cpu, memory, disk
+    alert_type = Column(String(50))
     threshold = Column(Float)
     duration_minutes = Column(Integer, default=5)
     enabled = Column(Boolean, default=True)
-    notification_email = Column(String)
+    notification_email = Column(String(255))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    # Relationships
-    user = relationship("User", back_populates="alert_configs")
 
+    user = relationship("User", back_populates="alert_configs")
 
 # class MetricsSnapshot(Base):
 #     """Store periodic snapshots of metrics for historical analysis"""

@@ -3,7 +3,7 @@ ML-Enhanced API Routes
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import datetime, timedelta
 from app.database import get_db
 from app import models, auth
@@ -24,18 +24,25 @@ router = APIRouter(prefix="/ml", tags=["Machine Learning"])
 
 @router.post("/anomaly/train/{instance_id}")
 async def train_anomaly_detector(
-    instance_id: int,
+    instance_id: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Train anomaly detection model for an instance"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
     # Get historical metrics (last 7 days)
     historical_data = db.query(models.MetricsSnapshot).filter(
-        models.MetricsSnapshot.instance_id == instance_id,
+        models.MetricsSnapshot.instance_id == instance.id,
         models.MetricsSnapshot.timestamp >= datetime.utcnow() - timedelta(days=7)
     ).all()
     
@@ -66,12 +73,19 @@ async def train_anomaly_detector(
 
 @router.get("/anomaly/detect/{instance_id}")
 async def detect_anomaly(
-    instance_id: int,
+    instance_id: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Detect anomalies in current metrics"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
@@ -107,18 +121,25 @@ async def detect_anomaly(
 
 @router.post("/cpu/train/{instance_id}")
 async def train_cpu_predictor(
-    instance_id: int,
+    instance_id: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Train CPU prediction model"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
     # Get historical data
     historical_data = db.query(models.MetricsSnapshot).filter(
-        models.MetricsSnapshot.instance_id == instance_id,
+        models.MetricsSnapshot.instance_id == instance.id,
         models.MetricsSnapshot.timestamp >= datetime.utcnow() - timedelta(days=7)
     ).all()
     
@@ -136,13 +157,20 @@ async def train_cpu_predictor(
 
 @router.get("/cpu/predict/{instance_id}")
 async def predict_cpu(
-    instance_id: int,
+    instance_id: str,
     minutes: int = 30,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Predict CPU usage for next N minutes"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
@@ -157,17 +185,24 @@ async def predict_cpu(
 
 @router.post("/memory/train/{instance_id}")
 async def train_memory_predictor(
-    instance_id: int,
+    instance_id: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Train memory prediction model"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
     historical_data = db.query(models.MetricsSnapshot).filter(
-        models.MetricsSnapshot.instance_id == instance_id,
+        models.MetricsSnapshot.instance_id == instance.id,
         models.MetricsSnapshot.timestamp >= datetime.utcnow() - timedelta(days=7)
     ).all()
     
@@ -185,13 +220,20 @@ async def train_memory_predictor(
 
 @router.get("/memory/predict/{instance_id}")
 async def predict_memory(
-    instance_id: int,
+    instance_id: str,
     minutes: int = 30,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Predict memory usage"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
@@ -206,18 +248,25 @@ async def predict_memory(
 
 @router.get("/memory/leak-detection/{instance_id}")
 async def detect_memory_leak(
-    instance_id: int,
+    instance_id: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Detect memory leaks"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
     # Get recent data (last 24 hours)
     historical_data = db.query(models.MetricsSnapshot).filter(
-        models.MetricsSnapshot.instance_id == instance_id,
+        models.MetricsSnapshot.instance_id == instance.id,
         models.MetricsSnapshot.timestamp >= datetime.utcnow() - timedelta(hours=24)
     ).all()
     
@@ -236,12 +285,19 @@ async def detect_memory_leak(
 
 @router.get("/health-score/{instance_id}")
 async def get_health_score(
-    instance_id: int,
+    instance_id: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Get instance health score"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
@@ -278,12 +334,19 @@ async def get_health_score(
 
 @router.get("/failure/predict/{instance_id}")
 async def predict_failure(
-    instance_id: int,
+    instance_id: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Predict system failure"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
@@ -307,7 +370,7 @@ async def predict_failure(
     
     # Get recent metrics
     recent_data = db.query(models.MetricsSnapshot).filter(
-        models.MetricsSnapshot.instance_id == instance_id,
+        models.MetricsSnapshot.instance_id == instance.id,
         models.MetricsSnapshot.timestamp >= datetime.utcnow() - timedelta(minutes=15)
     ).order_by(models.MetricsSnapshot.timestamp.desc()).limit(5).all()
     
@@ -328,12 +391,19 @@ async def predict_failure(
 
 @router.get("/root-cause/{instance_id}")
 async def analyze_root_cause(
-    instance_id: int,
+    instance_id: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Analyze root cause of issues"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
@@ -368,19 +438,26 @@ async def analyze_root_cause(
 
 @router.get("/capacity/analyze/{instance_id}")
 async def analyze_capacity(
-    instance_id: int,
+    instance_id: str,
     forecast_days: int = 14,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Analyze capacity and scaling needs"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
     # Get historical data (last 30 days)
     historical_data = db.query(models.MetricsSnapshot).filter(
-        models.MetricsSnapshot.instance_id == instance_id,
+        models.MetricsSnapshot.instance_id == instance.id,
         models.MetricsSnapshot.timestamp >= datetime.utcnow() - timedelta(days=30)
     ).all()
     
@@ -403,12 +480,19 @@ async def analyze_capacity(
 
 @router.get("/autoscale/recommend/{instance_id}")
 async def get_autoscale_recommendation(
-    instance_id: int,
+    instance_id: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Get auto-scaling recommendations"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     
@@ -433,12 +517,19 @@ async def get_autoscale_recommendation(
 
 @router.get("/dashboard/ml-summary/{instance_id}")
 async def get_ml_dashboard_summary(
-    instance_id: int,
+    instance_id: str,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_active_user)
+    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Get comprehensive ML analysis for dashboard"""
-    instance = db.query(models.Instance).filter(models.Instance.id == instance_id).first()
+    if instance_id.isdigit():
+        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
+    else:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
+    if not instance:
+        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
+        
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
     

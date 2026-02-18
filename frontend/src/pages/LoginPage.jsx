@@ -120,6 +120,7 @@ const LoginPage = () => {
                   <input
                     type="text"
                     required
+                    autoComplete="username"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     className="input-field pl-12"
@@ -137,6 +138,7 @@ const LoginPage = () => {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
+                    autoComplete="current-password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="input-field pl-12 pr-12"

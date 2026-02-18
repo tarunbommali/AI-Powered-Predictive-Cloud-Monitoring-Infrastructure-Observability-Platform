@@ -3,7 +3,11 @@ CPU Usage Prediction using LSTM and Prophet
 """
 import numpy as np
 import pandas as pd
-from prophet import Prophet
+try:
+    from prophet import Prophet
+    PROPHET_AVAILABLE = True
+except ImportError:
+    PROPHET_AVAILABLE = False
 from sklearn.preprocessing import MinMaxScaler
 import joblib
 import os
@@ -36,6 +40,9 @@ class CPUPredictor:
     
     def train(self, historical_data):
         """Train Prophet model for CPU prediction"""
+        if not PROPHET_AVAILABLE:
+            return {'status': 'error', 'message': 'Prophet library not installed. Install with: pip install prophet'}
+        
         logger.info("Training CPU prediction model...")
         
         df = self.prepare_data(historical_data)

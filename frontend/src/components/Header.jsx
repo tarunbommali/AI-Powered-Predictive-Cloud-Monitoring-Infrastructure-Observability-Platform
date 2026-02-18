@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Cloud, Moon, Sun, LogOut, User, Menu, X } from 'lucide-react';
+import { Cloud, Moon, Sun, LogOut, User, Menu, X, BookOpen } from 'lucide-react';
 import { useState } from 'react';
 
 const Header = () => {
@@ -40,6 +40,7 @@ const Header = () => {
             <NavLink to="/metrics">Metrics</NavLink>
             <NavLink to="/instances">Instances</NavLink>
             <NavLink to="/alerts">Alerts</NavLink>
+            <NavLink to="/how-it-works">How It Works</NavLink>
           </div>
 
           {/* Right Side Actions */}
@@ -110,6 +111,9 @@ const Header = () => {
             </MobileNavLink>
             <MobileNavLink to="/alerts" onClick={() => setMobileMenuOpen(false)}>
               Alerts
+            </MobileNavLink>
+            <MobileNavLink to="/how-it-works" onClick={() => setMobileMenuOpen(false)}>
+              How It Works
             </MobileNavLink>
             <button
               onClick={handleLogout}

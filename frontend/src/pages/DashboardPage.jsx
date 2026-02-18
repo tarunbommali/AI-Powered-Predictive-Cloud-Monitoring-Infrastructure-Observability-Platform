@@ -1,23 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { metricsAPI, instancesAPI } from '../services/api';
-import { Server, Activity, AlertTriangle, TrendingUp, Cpu, HardDrive, RefreshCw } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Server, Activity, AlertTriangle, TrendingUp, Cpu, HardDrive } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAutoRefresh } from '../hooks/useAutoRefresh';
+import RefreshControl from '../components/RefreshControl';
 
 const DashboardPage = () => {
   const [summary, setSummary] = useState(null);
   const [instances, setInstances] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 15000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [summaryRes, instancesRes] = await Promise.all([
         metricsAPI.getDashboardSummary(),
@@ -25,20 +18,14 @@ const DashboardPage = () => {
       ]);
       setSummary(summaryRes.data);
       setInstances(instancesRes.data);
-      setLoading(false);
-      setRefreshing(false);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast.error('Failed to fetch dashboard data');
-      setLoading(false);
-      setRefreshing(false);
     }
-  };
+  }, []);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchData();
-  };
+  const { loading, refreshing, refreshInterval, setRefreshInterval, manualRefresh } =
+    useAutoRefresh(fetchData, 15, 300);
 
   if (loading) {
     return (
@@ -51,21 +38,17 @@ const DashboardPage = () => {
   return (
     <div className="space-y-6 animate-in">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold gradient-text">Dashboard</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Real-time monitoring overview</p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleRefresh}
-          className="btn-outline flex items-center space-x-2"
-          disabled={refreshing}
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
-        </motion.button>
+        <RefreshControl
+          refreshInterval={refreshInterval}
+          setRefreshInterval={setRefreshInterval}
+          refreshing={refreshing}
+          onManualRefresh={manualRefresh}
+        />
       </div>
 
       {/* Stats Cards */}
@@ -188,11 +171,10 @@ const InstanceCard = ({ instance }) => (
         <Server className="w-5 h-5 text-primary-600" />
         <h3 className="font-semibold text-gray-900 dark:text-white">{instance.name}</h3>
       </div>
-      <span className={`px-2 py-1 text-xs rounded-full ${
-        instance.status === 'active'
+      <span className={`px-2 py-1 text-xs rounded-full ${instance.status === 'active'
           ? 'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400'
           : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
-      }`}>
+        }`}>
         {instance.status}
       </span>
     </div>

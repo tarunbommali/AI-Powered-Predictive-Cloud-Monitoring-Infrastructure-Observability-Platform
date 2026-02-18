@@ -21,10 +21,24 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Cloud Monitoring System - ML Enhanced",
     version="2.0.0",
-    description="Production-grade cloud monitoring system with 10 ML features for AWS EC2 instances",
+    description=(
+        "Production-grade cloud monitoring system with 10 ML features for AWS EC2 instances.\n\n"
+        "## 🔐 How to Authenticate\n"
+        "1. Click the **Authorize** button (🔒 icon) at the top right\n"
+        "2. Enter your **username** and **password**\n"
+        "3. Click **Authorize** → then **Close**\n"
+        "4. All endpoints will now work!\n"
+    ),
     docs_url="/api/docs",
     redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json"
+    openapi_url="/api/openapi.json",
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+        "displayRequestDuration": True,
+    },
+    swagger_ui_init_oauth={
+        "usePkceWithAuthorizationCodeGrant": False,
+    }
 )
 
 # CORS middleware
@@ -70,6 +84,32 @@ app.include_router(instances.router, prefix="/api")
 
 # Include ML routes - ML FEATURES
 app.include_router(ml_routes.router, prefix="/api")
+
+
+# Remove 422 Validation Error from Swagger docs
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    from fastapi.openapi.utils import get_openapi
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    # Remove 422 responses from all paths
+    for path in openapi_schema.get("paths", {}).values():
+        for method in path.values():
+            responses = method.get("responses", {})
+            responses.pop("422", None)
+    # Remove ValidationError schema
+    schemas = openapi_schema.get("components", {}).get("schemas", {})
+    schemas.pop("ValidationError", None)
+    schemas.pop("HTTPValidationError", None)
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 
 @app.get("/")

@@ -12,6 +12,7 @@ import DashboardPage from './pages/DashboardPage';
 import MetricsPage from './pages/MetricsPage';
 import InstancesPage from './pages/InstancesPage';
 import AlertsPage from './pages/AlertsPage';
+import HowItWorksPage from './pages/HowItWorksPage';
 
 // Components
 import Layout from './components/Layout';
@@ -48,10 +49,15 @@ const PublicRoute = ({ children }) => {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true
+      }}
+    >
       <ThemeProvider>
         <AuthProvider>
-          <Toaster 
+          <Toaster
             position="top-right"
             toastOptions={{
               duration: 4000,
@@ -73,7 +79,7 @@ function App() {
               },
             }}
           />
-          
+
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={
@@ -103,6 +109,7 @@ function App() {
               <Route path="metrics" element={<MetricsPage />} />
               <Route path="instances" element={<InstancesPage />} />
               <Route path="alerts" element={<AlertsPage />} />
+              <Route path="how-it-works" element={<HowItWorksPage />} />
             </Route>
 
             {/* Catch all */}
