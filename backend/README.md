@@ -112,6 +112,7 @@ nano .env
 python -c "from app.database import init_db; init_db()"
 
 # Start server
+uvicorn main:app --reloador
 uvicorn app.main:app --reload
 ```
 
