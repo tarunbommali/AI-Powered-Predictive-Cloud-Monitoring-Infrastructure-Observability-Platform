@@ -1,16 +1,20 @@
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { metricsAPI, instancesAPI } from '../services/api';
+import { metricsAPI, instancesAPI, mlAPI } from '../services/api';
 import { Cpu, HardDrive, Database, Wifi, Server } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
 import RefreshControl from '../components/RefreshControl';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const MetricsPage = () => {
   const [instances, setInstances] = useState([]);
   const [selectedInstance, setSelectedInstance] = useState(null);
   const [metrics, setMetrics] = useState(null);
   const [instancesLoaded, setInstancesLoaded] = useState(false);
+  const [mlData, setMlData] = useState(null);
+  const [mlLoading, setMlLoading] = useState(false);
+  const [history, setHistory] = useState([]);
 
   // Fetch instances on mount
   const fetchInstances = useCallback(async () => {
@@ -28,19 +32,109 @@ const MetricsPage = () => {
   }, [selectedInstance]);
 
   // Fetch metrics for selected instance
-  const fetchMetrics = useCallback(async () => {
-    if (!selectedInstance) return;
-    try {
-      const res = await metricsAPI.getAll(selectedInstance.instance_id);
-      setMetrics(res.data);
-    } catch (err) {
-      console.error('Error:', err);
-      toast.error('Failed to load metrics');
+ const fetchMetrics = useCallback(async () => {
+  if (!selectedInstance) return;
+
+  try {
+    const res = await metricsAPI.getAll(selectedInstance.instance_id);
+
+    setMetrics(res.data);
+
+    // ✅ ADD THIS HERE (IMPORTANT)
+    setHistory(prev => [
+      ...prev.slice(-20), // keep last 20 points
+      {
+        time: new Date().toLocaleTimeString().slice(0,5),
+        cpu: res.data.cpu?.usage_percent,
+        memory: res.data.memory?.usage_percent,
+        disk: res.data.disk?.usage_percent,
+        rx: res.data.network?.rx_bytes,
+        tx: res.data.network?.tx_bytes
+      }
+    ]);
+
+  } catch (err) {
+    console.error('Error:', err);
+    toast.error('Failed to load metrics');
+  }
+}, [selectedInstance]);
+// const fetchML = useCallback(async () => {
+//   if (!selectedInstance) return;
+
+//   try {
+//     setMlLoading(true);
+
+//     const res = await mlAPI.getSummary(selectedInstance.instance_id);
+//     setMlData(res.data);
+
+//     // ✅ ALERTS (STEP 5)
+//     if (res.data?.anomaly_detection?.is_anomaly) {
+//       toast.error("🚨 Anomaly detected! System unstable");
+//     }
+
+//     if (res.data?.health_score?.health_score < 40) {
+//       toast.error("⚠️ System health is critical!");
+//     }
+
+//     setMlLoading(false);
+
+//   } catch (err) {
+//     console.error('ML Error:', err);
+//     setMlLoading(false);
+//   }
+// }, [selectedInstance]);
+
+
+const fetchML = useCallback(async () => {
+  if (!selectedInstance) return;
+
+  try {
+    setMlLoading(true);
+
+    const res = await mlAPI.getSummary(selectedInstance.instance_id);
+
+    // ✅ ONLY SHOW TOAST IF NEW ANOMALY (IMPORTANT FIX)
+    if (
+      res.data?.anomaly_detection?.is_anomaly &&
+      !mlData?.anomaly_detection?.is_anomaly
+    ) {
+      toast.error("🚨 Anomaly detected! System unstable");
     }
-  }, [selectedInstance]);
+
+    if (
+  res.data?.health_score?.health_score < 40 &&
+  (mlData?.health_score?.health_score ?? 100) >= 40
+) {
+      toast.error("⚠️ System health is critical!");
+    }
+
+    setMlData(res.data);
+    setMlLoading(false);
+
+  } catch (err) {
+    console.error('ML Error:', err);
+    setMlLoading(false);
+  }
+}, [selectedInstance, mlData]);
+
+
+const formatPredictionData = (data) => {
+  return data?.map(item => ({
+    time: item.timestamp.slice(11, 16),
+    cpu: item.predicted_cpu
+  })) || [];
+};
+const formatMemoryData = (data) => {
+  return data?.map(item => ({
+    time: item.timestamp.slice(11, 16),
+    memory: item.predicted_memory
+  })) || [];
+};
 
   // Auto-refresh for instances (once)
+  // Auto-refresh for instances (once)
   useAutoRefresh(fetchInstances, 0, 300);
+  useAutoRefresh(fetchML, 15, 300, [selectedInstance]);
 
   // Auto-refresh for metrics with configurable interval
   const { loading, refreshing, refreshInterval, setRefreshInterval, manualRefresh } =
@@ -185,6 +279,195 @@ const MetricsPage = () => {
               </p>
             </div>
           )}
+         
+
+
+       
+          {/* ML Insights */}
+
+{!mlData && !mlLoading && (
+  <div className="glass-card p-4 text-center text-gray-500">
+    No ML data available
+  </div>
+)}  
+
+{mlLoading && (
+  <div className="glass-card p-4 text-center">
+    <p className="text-gray-500">Loading ML Insights...</p>
+  </div>
+)}
+<div className="glass-card p-6">
+  <h2 className="text-lg font-bold mb-4">Live Metrics</h2>
+ {history.length > 0 && (
+  <div className="mt-6">
+  <h3 className="text-lg font-semibold mb-3">CPU Usage (Live)</h3>
+  <p className="text-xs text-gray-400">
+  Last updated: {new Date().toLocaleTimeString()}
+</p>
+
+  <ResponsiveContainer width="100%" height={300}>
+    <LineChart data={history}>
+      <XAxis dataKey="time" />
+      <YAxis width={40} />
+      <Tooltip />
+      <Line type="monotone" dataKey="cpu" stroke="#3b82f6" strokeWidth={2} />
+    </LineChart>
+  </ResponsiveContainer>
+</div>
+
+)}
+</div>
+
+{history.length > 0 && (
+<div className="glass-card p-6">
+ 
+  <div className="mt-6">
+    <h3 className="text-lg font-semibold mb-3">Memory Usage (Live)</h3>
+
+<p className="text-xs text-gray-400">
+  Last updated: {new Date().toLocaleTimeString()}
+</p>
+
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={history}>
+        <XAxis dataKey="time" />
+        <YAxis width={40} />
+        <Tooltip />
+        <Line type="monotone" dataKey="memory" stroke="#10b981" strokeWidth={2} />
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+
+  </div>
+)}
+
+
+{history.length > 0 && (
+<div className="glass-card p-6">
+
+  <div className="mt-6">
+    <h3 className="text-lg font-semibold mb-3">Disk Usage (Live)</h3>
+
+<p className="text-xs text-gray-400">
+  Last updated: {new Date().toLocaleTimeString()}
+</p>
+
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={history}>
+        <XAxis dataKey="time" />
+        <YAxis width={40} />
+        <Tooltip />
+        <Line type="monotone" dataKey="disk" stroke="#f97316" strokeWidth={2} />
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+  </div>
+)}
+
+{history.length > 0 && (
+<div className="glass-card p-6">
+
+  <div className="mt-6">
+    <h3 className="text-lg font-semibold mb-3">Network Traffic (Live)</h3>
+
+<p className="text-xs text-gray-400">
+  Last updated: {new Date().toLocaleTimeString()}
+</p>
+
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={history}>
+        <XAxis dataKey="time" />
+        <YAxis 
+  width={60}
+  tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`} 
+/>
+        <Tooltip />
+        <Line type="monotone" dataKey="rx" stroke="#8b5cf6" strokeWidth={2} />
+        <Line type="monotone" dataKey="tx" stroke="#ec4899" strokeWidth={2} />
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+
+
+</div>
+)}
+
+{mlData && (
+  <div className="glass-card p-6">
+    <h2 className="text-lg font-bold mb-4">🧠 ML Insights</h2>
+
+    <div className="grid md:grid-cols-3 gap-6">
+   
+
+  {/* 🔥 HEALTH SCORE */}
+<div className="p-4 rounded-xl bg-white dark:bg-gray-800 shadow-md">
+  <h3 className="font-semibold mb-2">Health Score</h3>
+
+  <div className={`text-3xl font-bold ${
+    mlData?.health_score?.color === 'danger'
+      ? 'text-red-500'
+      : 'text-green-500'
+  }`}>
+    {mlData?.health_score?.health_score
+  ? mlData.health_score.health_score.toFixed(2)
+  : "N/A"}
+  </div>
+
+  <p className="text-sm mt-1 text-gray-500">
+    Status: {mlData?.health_score?.status}
+  </p>
+
+  <div className="mt-2 text-sm text-gray-600">
+    CPU: {mlData?.health_score?.components?.cpu_score}
+    <br />
+    Memory: {mlData?.health_score?.components?.memory_score}
+    <br />
+    Network: {mlData?.health_score?.components?.network_score}
+  </div>
+</div>
+
+  {/* 🔥 ANOMALY CARD */}
+  <div className={`p-4 rounded-xl ${
+    mlData?.anomaly_detection?.is_anomaly
+      ? 'bg-red-100 border border-red-400'
+      : 'bg-green-100 border border-green-400'
+  }`}>
+    <h3 className="font-semibold">Anomaly Status</h3>
+    
+   <p className={`text-sm mt-2 ${
+  mlData?.anomaly_detection?.is_anomaly
+    ? 'text-red-600 font-semibold'
+    : 'text-green-600'
+}`}>
+  
+  {mlData?.anomaly_detection?.is_anomaly
+    ? `⚠️ Anomaly detected (Confidence: ${mlData?.anomaly_detection?.confidence
+  ? mlData.anomaly_detection.confidence.toFixed(2)
+  : "0"})`
+    : '✅ System is stable'}
+    
+</p>
+  </div>
+
+  {/* 🔥 FAILURE PREDICTION */}
+  <div className="p-4 rounded-xl bg-white dark:bg-gray-800 shadow-md">
+    <h3 className="font-semibold">Failure Prediction</h3>
+    <p className={`text-sm mt-2 ${
+  mlData?.failure_prediction?.severity === 'critical'
+    ? 'text-red-500 font-semibold'
+    : 'text-green-500'
+}`}>
+  {mlData?.failure_prediction?.recommendation}
+</p>
+  </div>
+
+</div>
+  
+
+    </div>
+ 
+)}
+ 
         </>
       )}
     </div>

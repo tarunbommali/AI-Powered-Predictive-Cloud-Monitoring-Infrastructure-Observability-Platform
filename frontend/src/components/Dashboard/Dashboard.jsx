@@ -1,3 +1,5 @@
+// /Dashboard/dashboard.jsx
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiServer, FiActivity, FiBell, FiTrendingUp, FiCpu, FiHardDrive } from 'react-icons/fi';

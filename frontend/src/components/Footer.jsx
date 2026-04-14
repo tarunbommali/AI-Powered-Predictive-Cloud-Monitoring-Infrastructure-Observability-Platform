@@ -1,3 +1,5 @@
+// /Layout/Footer.jsx
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Cloud, Github, Twitter, Linkedin, Heart } from 'lucide-react';

@@ -10,15 +10,15 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.21.0",
     "axios": "^1.6.2",
-    "recharts": "^2.10.3",
-    "lucide-react": "^0.303.0",
     "date-fns": "^3.0.6",
     "framer-motion": "^10.16.16",
-    "react-hot-toast": "^2.4.1"
+    "lucide-react": "^0.303.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^6.21.0",
+    "recharts": "^2.15.4"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

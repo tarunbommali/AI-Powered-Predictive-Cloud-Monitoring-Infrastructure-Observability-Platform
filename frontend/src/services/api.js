@@ -1,3 +1,5 @@
+// api.js
+
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -57,6 +59,13 @@ export const instancesAPI = {
   update: (id, data) => api.put(`/instances/${id}`, data),
   delete: (id) => api.delete(`/instances/${id}`),
   getAlerts: (id) => api.get(`/instances/${id}/alerts`),
+};
+
+export const mlAPI = {
+  getSummary: (id) => api.get(`/ml/dashboard/ml-summary/${id}`),
+  detectAnomaly: (id) => api.get(`/ml/anomaly/detect/${id}`),
+  predictCPU: (id) => api.get(`/ml/cpu/predict/${id}`),
+  predictMemory: (id) => api.get(`/ml/memory/predict/${id}`)
 };
 
 export default api;
