@@ -1,0 +1,39 @@
+# Node
+node_modules
+npm-debug.log
+
+# Python
+venv
+__pycache__
+*.pyc
+
+# Git
+.git
+.gitignore
+
+# Environment
+.env
+
+# Build folders
+dist
+build
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+
+# Archives
+*.zip
+*.tar
+*.gz
+
+# IDE files
+.vscode
+.idea

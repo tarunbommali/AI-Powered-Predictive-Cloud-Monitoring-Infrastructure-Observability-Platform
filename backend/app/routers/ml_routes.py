@@ -1,7 +1,12 @@
 """
 ML-Enhanced API Routes
 """
+# from unittest import result
+
 from fastapi import APIRouter, Depends, HTTPException
+# from sklearn import metrics
+# from sklearn import metrics
+# from prophet import Prophet
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -10,11 +15,13 @@ from app import models, auth
 from app.ml_models.anomaly_detector import anomaly_detector
 from app.ml_models.cpu_predictor import cpu_predictor
 from app.ml_models.memory_predictor import memory_predictor
-from app.ml_models.health_scorer import health_scorer
-from app.ml_models.failure_predictor import failure_predictor
+# from app.ml_models.health_scorer import health_scorer
+# from app.ml_models.failure_predictor import failure_predictor
 from app.ml_models.root_cause_analyzer import root_cause_analyzer
 from app.ml_models.capacity_planner import capacity_planner
 from app.services.prometheus import prometheus_client
+from app.ml_models.health_model import health_model
+from app.ml_models.failure_model import failure_model
 import logging
 
 logger = logging.getLogger(__name__)
@@ -283,54 +290,51 @@ async def detect_memory_leak(
     }
 
 
+
 @router.get("/health-score/{instance_id}")
 async def get_health_score(
     instance_id: str,
-    db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
+    db: Session = Depends(get_db)
 ):
-    """Get instance health score"""
-    if instance_id.isdigit():
-        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
-    else:
-        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
-        
-    if not instance:
-        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
-        
+    # Get instance
+    instance = db.query(models.Instance).filter(
+        models.Instance.instance_id == instance_id
+    ).first()
+
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
-    
+
+    # Get historical data
+    historical_data = db.query(models.MetricsSnapshot).filter(
+        models.MetricsSnapshot.instance_id == instance.id
+    ).all()
+
+    if len(historical_data) < 50:
+        raise HTTPException(status_code=400, detail="Not enough data for ML")
+
     # Get current metrics
     target = f"{instance.ip_address}:{instance.port}"
-    cpu_usage = prometheus_client.get_cpu_usage(target)
-    memory_metrics = prometheus_client.get_memory_usage(target)
-    disk_metrics = prometheus_client.get_disk_usage(target)
-    network_metrics = prometheus_client.get_network_usage(target)
-    load_avg = prometheus_client.get_load_average(target)
-    
-    metrics = {
-        'cpu_usage': cpu_usage,
-        'memory_usage': memory_metrics.get('usage_percent', 0),
-        'disk_usage': disk_metrics.get('usage_percent', 0),
-        'network_rx_errors': network_metrics.get('rx_errors', 0),
-        'network_tx_errors': network_metrics.get('tx_errors', 0),
-        'load_1min': load_avg.get('load_1min', 0),
-        'cpu_count': 4  # You can get this from node_exporter
-    }
-    
-    # Check for anomalies
-    anomaly_score = anomaly_detector.detect(metrics)
-    
-    # Calculate health score
-    health_data = health_scorer.calculate_health_score(metrics, anomaly_score)
-    
-    return {
-        **health_data,
-        'instance_id': instance.instance_id,
-        'instance_name': instance.name
+
+    current_metrics = {
+        'cpu_usage': prometheus_client.get_cpu_usage(target),
+        'memory_usage': prometheus_client.get_memory_usage(target).get('usage_percent', 0),
+        'disk_usage': prometheus_client.get_disk_usage(target).get('usage_percent', 0),
+        'network_rx': prometheus_client.get_network_usage(target).get('rx_bytes', 0),
+        'network_tx': prometheus_client.get_network_usage(target).get('tx_bytes', 0),
+        'load_1min': prometheus_client.get_load_average(target).get('load_1min', 0)
     }
 
+    # ✅ Train model
+    health_model.train(historical_data)
+
+    # ✅ Predict using ML
+    result = health_model.predict(current_metrics)
+
+    # ✅ FINAL FIX (frontend-compatible response)
+    return {
+        "instanceId": instance.instance_id,
+        "healthScore": result.get("health_score", 0)
+    }
 
 @router.get("/failure/predict/{instance_id}")
 async def predict_failure(
@@ -339,25 +343,24 @@ async def predict_failure(
     current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
 ):
     """Predict system failure"""
-    if instance_id.isdigit():
-        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
-    else:
-        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
-        
-    if not instance:
-        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
-        
+
+    # ✅ Get instance (cleaned)
+    instance = db.query(models.Instance).filter(
+        models.Instance.instance_id == instance_id
+    ).first()
+
     if not instance:
         raise HTTPException(status_code=404, detail="Instance not found")
-    
-    # Get current metrics
+
+    # ✅ Get current metrics
     target = f"{instance.ip_address}:{instance.port}"
+
     cpu_usage = prometheus_client.get_cpu_usage(target)
     memory_metrics = prometheus_client.get_memory_usage(target)
     disk_metrics = prometheus_client.get_disk_usage(target)
     network_metrics = prometheus_client.get_network_usage(target)
     load_avg = prometheus_client.get_load_average(target)
-    
+
     current_metrics = {
         'cpu_usage': cpu_usage,
         'memory_usage': memory_metrics.get('usage_percent', 0),
@@ -367,116 +370,28 @@ async def predict_failure(
         'network_rx_errors': network_metrics.get('rx_errors', 0),
         'network_tx_errors': network_metrics.get('tx_errors', 0)
     }
-    
-    # Get recent metrics
-    recent_data = db.query(models.MetricsSnapshot).filter(
-        models.MetricsSnapshot.instance_id == instance.id,
-        models.MetricsSnapshot.timestamp >= datetime.utcnow() - timedelta(minutes=15)
-    ).order_by(models.MetricsSnapshot.timestamp.desc()).limit(5).all()
-    
-    recent_metrics = [{
-        'cpu_usage': m.cpu_usage,
-        'memory_usage': m.memory_usage,
-        'disk_usage': m.disk_usage
-    } for m in recent_data] if recent_data else None
-    
-    result = failure_predictor.predict_failure(current_metrics, recent_metrics)
-    
-    return {
-        **result,
-        'instance_id': instance.instance_id,
-        'instance_name': instance.name
-    }
 
-
-@router.get("/root-cause/{instance_id}")
-async def analyze_root_cause(
-    instance_id: str,
-    db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
-):
-    """Analyze root cause of issues"""
-    if instance_id.isdigit():
-        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
-    else:
-        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
-        
-    if not instance:
-        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
-        
-    if not instance:
-        raise HTTPException(status_code=404, detail="Instance not found")
-    
-    # Get current metrics
-    target = f"{instance.ip_address}:{instance.port}"
-    cpu_usage = prometheus_client.get_cpu_usage(target)
-    memory_metrics = prometheus_client.get_memory_usage(target)
-    disk_metrics = prometheus_client.get_disk_usage(target)
-    network_metrics = prometheus_client.get_network_usage(target)
-    load_avg = prometheus_client.get_load_average(target)
-    
-    metrics = {
-        'cpu_usage': cpu_usage,
-        'memory_usage': memory_metrics.get('usage_percent', 0),
-        'disk_usage': disk_metrics.get('usage_percent', 0),
-        'network_rx_bytes': network_metrics.get('rx_bytes', 0),
-        'network_rx_errors': network_metrics.get('rx_errors', 0),
-        'network_tx_errors': network_metrics.get('tx_errors', 0),
-        'disk_write_bytes': disk_metrics.get('write_bytes', 0),
-        'load_1min': load_avg.get('load_1min', 0),
-        'load_5min': load_avg.get('load_5min', 0)
-    }
-    
-    result = root_cause_analyzer.analyze(metrics)
-    
-    return {
-        **result,
-        'instance_id': instance.instance_id,
-        'instance_name': instance.name
-    }
-
-
-@router.get("/capacity/analyze/{instance_id}")
-async def analyze_capacity(
-    instance_id: str,
-    forecast_days: int = 14,
-    db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(auth.get_optional_current_user)
-):
-    """Analyze capacity and scaling needs"""
-    if instance_id.isdigit():
-        instance = db.query(models.Instance).filter(models.Instance.id == int(instance_id)).first()
-    else:
-        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
-        
-    if not instance:
-        instance = db.query(models.Instance).filter(models.Instance.instance_id == instance_id).first()
-        
-    if not instance:
-        raise HTTPException(status_code=404, detail="Instance not found")
-    
-    # Get historical data (last 30 days)
+    # ✅ Get historical data for training
     historical_data = db.query(models.MetricsSnapshot).filter(
-        models.MetricsSnapshot.instance_id == instance.id,
-        models.MetricsSnapshot.timestamp >= datetime.utcnow() - timedelta(days=30)
+        models.MetricsSnapshot.instance_id == instance.id
     ).all()
-    
-    if len(historical_data) < 100:
-        raise HTTPException(status_code=400, detail="Insufficient historical data")
-    
-    data = [{
-        'cpu_usage': m.cpu_usage,
-        'memory_usage': m.memory_usage
-    } for m in historical_data]
-    
-    result = capacity_planner.analyze_capacity(data, forecast_days)
-    
-    return {
-        **result,
-        'instance_id': instance.instance_id,
-        'instance_name': instance.name
-    }
 
+    if len(historical_data) < 50:
+        raise HTTPException(status_code=400, detail="Not enough data for ML")
+
+    # ✅ Train model (you can optimize later)
+    failure_model.train(historical_data)
+
+    # ✅ Predict
+    result = failure_model.predict(current_metrics)
+
+    # ✅ FINAL FIX (frontend-compatible response)
+    return {
+        "instanceId": instance.instance_id,
+        "instanceName": instance.name,
+        "failureProbability": result.get("failure_probability", 0),
+        "status": result.get("status", "normal")
+    }
 
 @router.get("/autoscale/recommend/{instance_id}")
 async def get_autoscale_recommendation(
@@ -545,7 +460,8 @@ async def get_ml_dashboard_summary(
         'cpu_usage': cpu_usage,
         'memory_usage': memory_metrics.get('usage_percent', 0),
         'disk_usage': disk_metrics.get('usage_percent', 0),
-        'network_rx_bytes': network_metrics.get('rx_bytes', 0),
+        'network_rx': network_metrics.get('rx_bytes', 0),
+        'network_tx': network_metrics.get('tx_bytes', 0),   # ✅ ADD THIS LINE
         'network_rx_errors': network_metrics.get('rx_errors', 0),
         'network_tx_errors': network_metrics.get('tx_errors', 0),
         'disk_write_bytes': disk_metrics.get('write_bytes', 0),
@@ -556,8 +472,25 @@ async def get_ml_dashboard_summary(
     
     # Get all ML insights
     anomaly = anomaly_detector.detect(metrics)
-    health = health_scorer.calculate_health_score(metrics, anomaly)
-    failure = failure_predictor.predict_failure(metrics)
+    historical_data = db.query(models.MetricsSnapshot).filter(
+          models.MetricsSnapshot.instance_id == instance.id
+    ).all()
+
+    if len(historical_data) >= 50:
+         health_model.train(historical_data)
+         failure_model.train(historical_data)
+         health = health_model.predict(metrics)
+         failure = failure_model.predict(metrics)
+    else:
+        health = {
+            "health_score": 50,
+            "status": "insufficient_data"
+    }
+        failure = {
+            "failure_probability": 0,
+            "status": "insufficient_data"
+    }
+
     root_cause = root_cause_analyzer.analyze(metrics)
     autoscale = capacity_planner.get_autoscaling_recommendation(metrics)
     
@@ -570,14 +503,19 @@ async def get_ml_dashboard_summary(
         memory_pred = {'predictions': []}
     
     return {
-        'instance_id': instance.instance_id,
-        'instance_name': instance.name,
-        'health_score': health,
-        'anomaly_detection': anomaly,
-        'failure_prediction': failure,
-        'root_cause_analysis': root_cause,
-        'autoscale_recommendation': autoscale,
-        'cpu_prediction': cpu_pred.get('predictions', [])[:10],
-        'memory_prediction': memory_pred.get('predictions', [])[:10],
-        'timestamp': datetime.now().isoformat()
-    }
+    'instanceId': instance.instance_id,
+    'instanceName': instance.name,
+
+    # ✅ IMPORTANT CHANGE (camelCase)
+    'healthScore': health.get('health_score', 0),
+
+    'failureProbability': failure.get('failure_probability', 0),
+    'failureStatus': failure.get('status', 'normal'),
+
+    'anomaly': anomaly.get('is_anomaly', False),
+
+    'cpuPrediction': cpu_pred.get('predictions', [])[:10],
+    'memoryPrediction': memory_pred.get('predictions', [])[:10],
+
+    'timestamp': datetime.now().isoformat()
+}

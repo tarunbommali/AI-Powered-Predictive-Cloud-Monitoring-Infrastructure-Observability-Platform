@@ -84,7 +84,6 @@ const MetricsPage = () => {
 //   }
 // }, [selectedInstance]);
 
-
 const fetchML = useCallback(async () => {
   if (!selectedInstance) return;
 
@@ -93,18 +92,18 @@ const fetchML = useCallback(async () => {
 
     const res = await mlAPI.getSummary(selectedInstance.instance_id);
 
-    // ✅ ONLY SHOW TOAST IF NEW ANOMALY (IMPORTANT FIX)
+    // ✅ FIXED KEYS
     if (
-      res.data?.anomaly_detection?.is_anomaly &&
-      !mlData?.anomaly_detection?.is_anomaly
+      res.data?.anomaly &&
+      !mlData?.anomaly
     ) {
       toast.error("🚨 Anomaly detected! System unstable");
     }
 
     if (
-  res.data?.health_score?.health_score < 40 &&
-  (mlData?.health_score?.health_score ?? 100) >= 40
-) {
+      res.data?.healthScore < 40 &&
+      (mlData?.healthScore ?? 100) >= 40
+    ) {
       toast.error("⚠️ System health is critical!");
     }
 
@@ -404,62 +403,54 @@ const formatMemoryData = (data) => {
   <h3 className="font-semibold mb-2">Health Score</h3>
 
   <div className={`text-3xl font-bold ${
-    mlData?.health_score?.color === 'danger'
+    mlData?.healthScore < 40
       ? 'text-red-500'
       : 'text-green-500'
   }`}>
-    {mlData?.health_score?.health_score
-  ? mlData.health_score.health_score.toFixed(2)
-  : "N/A"}
+    {mlData?.healthScore !== undefined
+      ? mlData.healthScore.toFixed(2)
+      : "N/A"}
   </div>
 
   <p className="text-sm mt-1 text-gray-500">
-    Status: {mlData?.health_score?.status}
+    Status: {mlData?.healthScore < 40 ? "Critical" : "Healthy"}
   </p>
-
-  <div className="mt-2 text-sm text-gray-600">
-    CPU: {mlData?.health_score?.components?.cpu_score}
-    <br />
-    Memory: {mlData?.health_score?.components?.memory_score}
-    <br />
-    Network: {mlData?.health_score?.components?.network_score}
-  </div>
 </div>
 
-  {/* 🔥 ANOMALY CARD */}
-  <div className={`p-4 rounded-xl ${
-    mlData?.anomaly_detection?.is_anomaly
-      ? 'bg-red-100 border border-red-400'
-      : 'bg-green-100 border border-green-400'
-  }`}>
-    <h3 className="font-semibold">Anomaly Status</h3>
-    
-   <p className={`text-sm mt-2 ${
-  mlData?.anomaly_detection?.is_anomaly
-    ? 'text-red-600 font-semibold'
-    : 'text-green-600'
+ {/* 🔥 ANOMALY CARD */}
+<div className={`p-4 rounded-xl ${
+  mlData?.anomaly
+    ? 'bg-red-100 border border-red-400'
+    : 'bg-green-100 border border-green-400'
 }`}>
-  
-  {mlData?.anomaly_detection?.is_anomaly
-    ? `⚠️ Anomaly detected (Confidence: ${mlData?.anomaly_detection?.confidence
-  ? mlData.anomaly_detection.confidence.toFixed(2)
-  : "0"})`
-    : '✅ System is stable'}
-    
-</p>
-  </div>
+  <h3 className="font-semibold">Anomaly Status</h3>
 
-  {/* 🔥 FAILURE PREDICTION */}
-  <div className="p-4 rounded-xl bg-white dark:bg-gray-800 shadow-md">
-    <h3 className="font-semibold">Failure Prediction</h3>
-    <p className={`text-sm mt-2 ${
-  mlData?.failure_prediction?.severity === 'critical'
-    ? 'text-red-500 font-semibold'
-    : 'text-green-500'
-}`}>
-  {mlData?.failure_prediction?.recommendation}
-</p>
-  </div>
+  <p className={`text-sm mt-2 ${
+    mlData?.anomaly
+      ? 'text-red-600 font-semibold'
+      : 'text-green-600'
+  }`}>
+    {mlData?.anomaly
+      ? '⚠️ Anomaly detected'
+      : '✅ System is stable'}
+  </p>
+</div>
+
+
+{/* 🔥 FAILURE PREDICTION */}
+<div className="p-4 rounded-xl bg-white dark:bg-gray-800 shadow-md">
+  <h3 className="font-semibold">Failure Prediction</h3>
+
+  <p className={`text-sm mt-2 ${
+    mlData?.failureProbability > 0.7
+      ? 'text-red-500 font-semibold'
+      : 'text-green-500'
+  }`}>
+    {mlData?.failureProbability !== undefined
+      ? `Failure Risk: ${(mlData.failureProbability * 100).toFixed(1)}%`
+      : 'N/A'}
+  </p>
+</div>
 
 </div>
   

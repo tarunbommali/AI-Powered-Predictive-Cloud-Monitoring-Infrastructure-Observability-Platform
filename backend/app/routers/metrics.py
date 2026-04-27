@@ -13,7 +13,8 @@ from app.services.alerting import alert_service
 router = APIRouter(prefix="/metrics", tags=["Metrics"])
 
 
-@router.get("/cpu/{instance_id}")
+
+@router.get("/cpu/{instance_id}") 
 async def get_cpu_metrics(
     instance_id: str,
     current_user: Optional[models.User] = Depends(auth.get_optional_current_user),
