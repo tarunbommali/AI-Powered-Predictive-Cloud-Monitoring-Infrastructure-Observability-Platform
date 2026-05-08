@@ -3,7 +3,7 @@ Main FastAPI application
 Cloud Monitoring System - COMPLETE with ML Features
 """
 
-from app.services.scheduler import start_scheduler
+from app.services.prometheus import prometheus_service
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
