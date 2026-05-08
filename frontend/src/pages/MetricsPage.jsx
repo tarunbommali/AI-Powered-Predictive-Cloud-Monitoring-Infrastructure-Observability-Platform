@@ -115,7 +115,7 @@ const fetchML = useCallback(async () => {
     setMlLoading(false);
   }
 }, [selectedInstance, mlData]);
-
+ 
 
 const formatPredictionData = (data) => {
   return data?.map(item => ({

@@ -26,17 +26,34 @@ if (instancesRes.data.length > 0) {
 
   const firstInstance = instancesRes.data[0];
 
-  const [
-    healthRes,
-    failureRes,
-    autoscaleRes,
-    anomalyRes
-  ] = await Promise.all([
-    mlAPI.getHealthScore(firstInstance.id),
-    mlAPI.predictFailure(firstInstance.id),
-    mlAPI.getAutoscaleRecommendation(firstInstance.id),
-    mlAPI.detectAnomaly(firstInstance.id)
-  ]);
+  let healthRes = { data: { health_score: 0 } };
+let failureRes = { data: { failure_probability: 0 } };
+let autoscaleRes = { data: { recommendation: "No Data" } };
+let anomalyRes = { data: { is_anomaly: false } };
+
+try {
+  healthRes = await mlAPI.getHealthScore(firstInstance.instance_id);
+} catch (e) {
+  console.log("Health score API failed");
+}
+
+try {
+  failureRes = await mlAPI.predictFailure(firstInstance.instance_id);
+} catch (e) {
+  console.log("Failure prediction API failed");
+}
+
+try {
+  autoscaleRes = await mlAPI.getAutoscaleRecommendation(firstInstance.instance_id);
+} catch (e) {
+  console.log("Autoscale API failed");
+}
+
+try {
+  anomalyRes = await mlAPI.detectAnomaly(firstInstance.instance_id);
+} catch (e) {
+  console.log("Anomaly API failed");
+}
 
   setHealthScore(healthRes.data);
   setFailurePrediction(failureRes.data);
@@ -51,16 +68,14 @@ if (instancesRes.data.length > 0) {
     }
   }, []);
 
-  const { loading, refreshing, refreshInterval, setRefreshInterval, manualRefresh } =
-    useAutoRefresh(fetchData, 15, 300);
+  const {
+  refreshing,
+  refreshInterval,
+  setRefreshInterval,
+  manualRefresh
+} = useAutoRefresh(fetchData, 15, 300);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="spinner"></div>
-      </div>
-    );
-  }
+ 
 
   return (
     <div className="space-y-6 animate-in">
