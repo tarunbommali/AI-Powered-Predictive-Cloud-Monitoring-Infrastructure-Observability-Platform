@@ -63,9 +63,24 @@ export const instancesAPI = {
 
 export const mlAPI = {
   getSummary: (id) => api.get(`/ml/dashboard/ml-summary/${id}`),
-  detectAnomaly: (id) => api.get(`/ml/anomaly/detect/${id}`),
-  predictCPU: (id) => api.get(`/ml/cpu/predict/${id}`),
-  predictMemory: (id) => api.get(`/ml/memory/predict/${id}`)
+
+  detectAnomaly: (id) =>
+    api.get(`/ml/anomaly/detect/${id}`),
+
+  predictCPU: (id) =>
+    api.get(`/ml/cpu/predict/${id}`),
+
+  predictMemory: (id) =>
+    api.get(`/ml/memory/predict/${id}`),
+
+  getHealthScore: (id) =>
+    api.get(`/ml/health-score/${id}`),
+
+  predictFailure: (id) =>
+    api.get(`/ml/failure/predict/${id}`),
+
+  getAutoscaleRecommendation: (id) =>
+    api.get(`/ml/autoscale/recommend/${id}`)
 };
 
 export default api;

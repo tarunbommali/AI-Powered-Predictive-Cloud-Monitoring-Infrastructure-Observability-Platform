@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { metricsAPI, instancesAPI } from '../services/api';
+import { metricsAPI, instancesAPI, mlAPI } from '../services/api';
 import { Server, Activity, AlertTriangle, TrendingUp, Cpu, HardDrive } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAutoRefresh } from '../hooks/useAutoRefresh';
@@ -9,13 +9,40 @@ import RefreshControl from '../components/RefreshControl';
 const DashboardPage = () => {
   const [summary, setSummary] = useState(null);
   const [instances, setInstances] = useState([]);
-
+  const [healthScore, setHealthScore] = useState(null);
+  const [failurePrediction, setFailurePrediction] = useState(null);
+  const [autoscale, setAutoscale] = useState(null);
+  const [anomaly, setAnomaly] = useState(null);
   const fetchData = useCallback(async () => {
     try {
       const [summaryRes, instancesRes] = await Promise.all([
-        metricsAPI.getDashboardSummary(),
-        instancesAPI.list(),
-      ]);
+  metricsAPI.getDashboardSummary(),
+  instancesAPI.list(),
+]);
+
+
+
+if (instancesRes.data.length > 0) {
+
+  const firstInstance = instancesRes.data[0];
+
+  const [
+    healthRes,
+    failureRes,
+    autoscaleRes,
+    anomalyRes
+  ] = await Promise.all([
+    mlAPI.getHealthScore(firstInstance.id),
+    mlAPI.predictFailure(firstInstance.id),
+    mlAPI.getAutoscaleRecommendation(firstInstance.id),
+    mlAPI.detectAnomaly(firstInstance.id)
+  ]);
+
+  setHealthScore(healthRes.data);
+  setFailurePrediction(failureRes.data);
+  setAutoscale(autoscaleRes.data);
+  setAnomaly(anomalyRes.data);
+}
       setSummary(summaryRes.data);
       setInstances(instancesRes.data);
     } catch (error) {
@@ -100,6 +127,80 @@ const DashboardPage = () => {
           color="success"
         />
       </div>
+      
+
+      {/* ML Intelligence Section */}
+
+<div className="glass-card p-6">
+  <h2 className="text-2xl font-bold text-white mb-6">
+    AI / ML Intelligence
+  </h2>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+    {/* Health Score */}
+    <div className="bg-gradient-to-r from-green-500 to-green-700 p-5 rounded-2xl shadow-lg">
+      <h3 className="text-lg font-semibold text-white mb-2">
+        Health Score
+      </h3>
+
+      <p className="text-4xl font-bold text-white">
+        {healthScore?.health_score || 0}%
+      </p>
+
+      <p className="text-sm text-white mt-2">
+        System overall health
+      </p>
+    </div>
+
+    {/* Failure Prediction */}
+    <div className="bg-gradient-to-r from-red-500 to-red-700 p-5 rounded-2xl shadow-lg">
+      <h3 className="text-lg font-semibold text-white mb-2">
+        Failure Prediction
+      </h3>
+
+      <p className="text-3xl font-bold text-white">
+        {failurePrediction?.failure_probability || 0}%
+      </p>
+
+      <p className="text-sm text-white mt-2">
+        Failure probability
+      </p>
+    </div>
+
+    {/* Auto Scaling */}
+    <div className="bg-gradient-to-r from-blue-500 to-blue-700 p-5 rounded-2xl shadow-lg">
+      <h3 className="text-lg font-semibold text-white mb-2">
+        Auto Scaling
+      </h3>
+
+      <p className="text-xl font-bold text-white">
+        {autoscale?.recommendation || 'No Data'}
+      </p>
+
+      <p className="text-sm text-white mt-2">
+        ML scaling recommendation
+      </p>
+    </div>
+
+    {/* Anomaly Detection */}
+    <div className="bg-gradient-to-r from-yellow-500 to-orange-600 p-5 rounded-2xl shadow-lg">
+      <h3 className="text-lg font-semibold text-white mb-2">
+        Anomaly Detection
+      </h3>
+
+      <p className="text-2xl font-bold text-white">
+        {anomaly?.is_anomaly ? 'Anomaly Found' : 'Normal'}
+      </p>
+
+      <p className="text-sm text-white mt-2">
+        Real-time anomaly status
+      </p>
+    </div>
+
+  </div>
+</div>
+
 
       {/* Instances List */}
       <div className="glass-card p-6">
