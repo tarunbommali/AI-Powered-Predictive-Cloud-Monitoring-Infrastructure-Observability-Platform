@@ -1,5 +1,5 @@
 """
-SQLAlchemy database models
+SQLAlchemy database models  model.py
 """
 from sqlalchemy import Boolean, Column, Integer, String, DateTime, Float, ForeignKey, JSON
 from sqlalchemy.orm import relationship

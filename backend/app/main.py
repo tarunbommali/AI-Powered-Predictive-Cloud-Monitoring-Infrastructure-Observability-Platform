@@ -2,6 +2,8 @@
 Main FastAPI application
 Cloud Monitoring System - COMPLETE with ML Features
 """
+
+from app.services.scheduler import start_scheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -56,6 +58,7 @@ async def startup_event():
     """Initialize database on startup"""
     logger.info("Starting Cloud Monitoring System - ML Enhanced v2.0.0")
     init_db()
+    start_scheduler()
     logger.info("Database initialized successfully")
 
 
