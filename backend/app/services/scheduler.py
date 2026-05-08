@@ -29,7 +29,6 @@ def collect_metrics_job():
 
             metrics = prometheus_client.get_all_metrics(
                 instance.ip_address,
-                instance.port
             )
 
             snapshot = models.MetricsSnapshot(
