@@ -274,7 +274,37 @@ class PrometheusClient:
         if result.get("status") == "success" and result.get("data", {}).get("result"):
             return float(result["data"]["result"][0]["value"][1])
         return random.uniform(86400, 2592000)  # Fallback to mock data
-    
+        
+
+    def get_all_metrics(self, instance: str) -> Dict[str, Any]:
+        """
+           Get all metrics together
+         """
+
+        cpu = self.get_cpu_usage(instance)
+        memory = self.get_memory_usage(instance)
+        disk = self.get_disk_usage(instance)
+        network = self.get_network_usage(instance)
+        load = self.get_load_average(instance)
+
+        return {
+        "cpu_usage": cpu,
+
+        "memory_usage": memory.get("usage_percent", 0),
+
+        "disk_usage": disk.get("usage_percent", 0),
+
+        "network_rx": network.get("rx_bytes", 0),
+        "network_tx": network.get("tx_bytes", 0),
+
+        "network_rx_errors": network.get("rx_errors", 0),
+        "network_tx_errors": network.get("tx_errors", 0),
+
+        "load_1min": load.get("load_1min", 0),
+        "load_5min": load.get("load_5min", 0),
+        "load_15min": load.get("load_15min", 0),
+    }
+
     def check_health(self) -> bool:
         """Check if Prometheus is healthy"""
         try:

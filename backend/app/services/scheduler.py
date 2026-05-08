@@ -2,7 +2,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app import models
-from app.services.prometheus_service import prometheus_service
+from app.services.prometheus import prometheus_client
 import logging
 from datetime import datetime
 
@@ -27,7 +27,7 @@ def collect_metrics_job():
 
         for instance in instances:
 
-            metrics = prometheus_service.get_all_metrics(
+            metrics = prometheus_client.get_all_metrics(
                 instance.ip_address,
                 instance.port
             )
